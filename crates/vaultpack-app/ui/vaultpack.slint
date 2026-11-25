@@ -13,24 +13,15 @@ component NavItem inherits Rectangle {
     in property <bool> active;
     callback clicked;
     height: 44px;
-    border-radius: 10px;
-    background: active ? Theme.accent-soft : ta.has-hover ? Theme.card-hover : transparent;
-    Rectangle {
-        x: Theme.rtl ? parent.width - 3px : 0px;
-        y: 10px;
-        width: 3px;
-        height: 22px;
-        border-radius: 2px;
-        background: Theme.accent;
-        visible: active;
-    }
+    border-radius: 12px;
+    background: active ? Theme.accent : ta.has-hover ? Theme.card-hover : transparent;
     HorizontalLayout {
         padding-left: 16px;
         padding-right: 16px;
         spacing: 12px;
         alignment: Theme.rtl ? end : start;
-        VerticalLayout { alignment: center; Icon { d: icon; size: 20px; tint: active ? Theme.accent : Theme.sub; } }
-        Text { text: root.text; color: active ? Theme.text : Theme.sub; font-size: 14px; font-weight: active ? 600 : 400; vertical-alignment: center; }
+        VerticalLayout { alignment: center; Icon { d: icon; size: 20px; tint: active ? white : Theme.sub; } }
+        Text { text: root.text; color: active ? white : Theme.sub; font-size: 15px; font-weight: active ? 700 : 500; vertical-alignment: center; }
     }
     ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
 }
@@ -43,7 +34,7 @@ export component VaultpackWindow inherits Window {
     preferred-height: 720px;
     min-width: 900px;
     min-height: 640px;
-    default-font-family: "Segoe UI Variable";
+    default-font-family: "Segoe UI Variable Display";
     icon: @image-url("../assets/vaultpack.png");
     in-out property <int> mode: App.theme-index;
     // 0 = System (follow Windows), 1 = Dark, 2 = Light. Always resolved to a real dark/light value so
@@ -81,7 +72,7 @@ export component VaultpackWindow inherits Window {
                         height: 36px;
                         image-fit: contain;
                     }
-                    Text { text: "Vaultpack"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; }
+                    Text { text: "Vaultpack"; color: Theme.text; font-size: 21px; font-weight: 800; vertical-alignment: center; }
                 }
                 NavItem { icon: Icons.backup; text: Tr.backup; active: App.page == 0; clicked => { App.page = 0; } }
                 NavItem { icon: Icons.restore; text: Tr.restore; active: App.page == 1; clicked => { App.page = 1; } }
@@ -153,11 +144,12 @@ export component VaultpackWindow inherits Window {
             Card {
                 width: min(560px, parent.width - 60px);
                 height: 300px;
+                border-radius: 28px;
                 background: Theme.dialog-bg;
                 VerticalLayout {
                     padding: 24px;
                     spacing: 10px;
-                    Text { text: App.job-title; color: Theme.text; font-size: 20px; font-weight: 700; horizontal-alignment: Theme.start; }
+                    Text { text: App.job-title; color: Theme.text; font-size: 28px; font-weight: 800; horizontal-alignment: Theme.start; }
                     Text { text: App.job-status; color: Theme.sub; font-size: 13px; horizontal-alignment: Theme.start; }
                     Text { text: Tr.overall + "  " + Math.round(App.overall * 100) + "%   " + App.counters; color: Theme.text; font-size: 13px; horizontal-alignment: Theme.start; }
                     Bar { value: App.overall; }
@@ -181,11 +173,12 @@ export component VaultpackWindow inherits Window {
             Card {
                 width: min(640px, parent.width - 60px);
                 height: min(520px, parent.height - 60px);
+                border-radius: 28px;
                 background: Theme.dialog-bg;
                 VerticalLayout {
                     padding: 24px;
                     spacing: 12px;
-                    Text { text: App.summary-title; color: Theme.text; font-size: 20px; font-weight: 700; horizontal-alignment: Theme.start; }
+                    Text { text: App.summary-title; color: Theme.text; font-size: 28px; font-weight: 800; horizontal-alignment: Theme.start; }
                     Rectangle {
                         vertical-stretch: 1;
                         border-radius: 8px;

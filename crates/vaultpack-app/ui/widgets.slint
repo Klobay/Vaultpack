@@ -18,12 +18,10 @@ export component PButton inherits Rectangle {
     in property <bool> enabled: true;
     in property <bool> primary: true;
     callback clicked;
-    height: 36px;
+    height: 38px;
     min-width: 40px;
-    border-radius: 8px;
-    border-width: primary ? 0px : 1px;
-    border-color: ta.has-hover && enabled ? Theme.accent : Theme.border;
-    background: !enabled ? Theme.disabled : primary ? (ta.pressed ? Theme.accent-down : ta.has-hover ? Theme.accent-hover : Theme.accent) : (ta.pressed ? Theme.accent-soft : ta.has-hover ? Theme.card-hover : Theme.card);
+    border-radius: self.height / 2;
+    background: !enabled ? Theme.disabled : primary ? (ta.pressed ? Theme.accent-down : ta.has-hover ? Theme.accent-hover : Theme.accent) : (ta.pressed ? Theme.border : ta.has-hover ? Theme.card-hover : Theme.field-bg);
     HorizontalLayout {
         alignment: center;
         spacing: 8px;
@@ -33,7 +31,7 @@ export component PButton inherits Rectangle {
             alignment: center;
             Icon { d: icon; size: 16px; tint: !enabled || primary ? white : Theme.text; }
         }
-        Text { text: root.text; color: !enabled || primary ? white : Theme.text; font-size: 13px; font-weight: 600; vertical-alignment: center; horizontal-alignment: center; overflow: elide; }
+        Text { text: root.text; color: !enabled || primary ? white : Theme.text; font-size: 14px; font-weight: 600; vertical-alignment: center; horizontal-alignment: center; overflow: elide; }
     }
     ta := TouchArea {
         enabled: root.enabled;
@@ -57,9 +55,7 @@ export component IconButton inherits Rectangle {
 
 export component Card inherits Rectangle {
     background: Theme.card;
-    border-radius: 12px;
-    border-width: 1px;
-    border-color: Theme.border;
+    border-radius: 20px;
 }
 
 export component IconTile inherits Rectangle {
@@ -67,9 +63,9 @@ export component IconTile inherits Rectangle {
     in property <length> tile: 40px;
     width: tile;
     height: tile;
-    border-radius: 10px;
-    background: Theme.accent-soft;
-    Icon { d: icon; size: tile * 0.5; tint: Theme.accent; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+    border-radius: tile * 0.3;
+    background: Theme.accent;
+    Icon { d: icon; tint: white; size: tile * 0.5; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
 }
 
 export component Check3 inherits Rectangle {
@@ -89,19 +85,17 @@ export component Check3 inherits Rectangle {
 export component DashedBox inherits Rectangle {
     in property <color> line: Theme.sub;
     in property <bool> active: false;
-    border-radius: 14px;
+    border-radius: 24px;
+    border-width: 2px;
+    border-color: active ? Theme.accent : Theme.border;
     background: active ? Theme.accent-soft : Theme.card;
-    for i in 56: Rectangle { x: 14px + i * (parent.width - 28px) / 56; y: 0; width: (parent.width - 28px) / 112; height: 1.5px; background: active ? Theme.accent : line; }
-    for i in 56: Rectangle { x: 14px + i * (parent.width - 28px) / 56; y: parent.height - 1.5px; width: (parent.width - 28px) / 112; height: 1.5px; background: active ? Theme.accent : line; }
-    for i in 14: Rectangle { y: 14px + i * (parent.height - 28px) / 14; x: 0; height: (parent.height - 28px) / 28; width: 1.5px; background: active ? Theme.accent : line; }
-    for i in 14: Rectangle { y: 14px + i * (parent.height - 28px) / 14; x: parent.width - 1.5px; height: (parent.height - 28px) / 28; width: 1.5px; background: active ? Theme.accent : line; }
 }
 
 export component Bar inherits Rectangle {
     in property <float> value;
     height: 8px;
     border-radius: 4px;
-    background: Theme.border;
+    background: Theme.field-bg;
     clip: true;
     Rectangle { x: Theme.rtl ? parent.width - self.width : 0px; width: parent.width * Math.min(1, Math.max(0, root.value)); background: Theme.accent; border-radius: 4px; animate width { duration: 120ms; } }
 }
@@ -112,10 +106,10 @@ export component Field inherits Rectangle {
     in property <bool> secret: false;
     in property <bool> editable: true;
     callback edited(string);
-    height: 38px;
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: input.has-focus ? Theme.accent : Theme.border;
+    height: 40px;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: input.has-focus ? Theme.accent : transparent;
     background: Theme.field-bg;
     input := TextInput {
         x: 12px;
@@ -150,11 +144,11 @@ export component Field inherits Rectangle {
 export component Toggle inherits Rectangle {
     in-out property <bool> checked;
     callback toggled(bool);
-    width: 42px;
-    height: 24px;
-    border-radius: 12px;
-    background: checked ? Theme.accent : Theme.disabled;
-    Rectangle { width: 18px; height: 18px; border-radius: 9px; background: white; y: 3px; x: checked ? 21px : 3px; animate x { duration: 120ms; } }
+    width: 50px;
+    height: 30px;
+    border-radius: 15px;
+    background: checked ? Theme.green : Theme.disabled;
+    Rectangle { width: 26px; height: 26px; border-radius: 13px; background: white; y: 2px; x: checked ? 22px : 2px; animate x { duration: 120ms; } }
     TouchArea { mouse-cursor: pointer; clicked => { root.checked = !root.checked; root.toggled(root.checked); } }
 }
 

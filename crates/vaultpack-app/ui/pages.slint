@@ -7,16 +7,15 @@ component PageHeader inherits Rectangle {
     in property <string> icon;
     in property <string> title;
     in property <string> sub;
-    height: 60px;
+    height: 64px;
     HorizontalLayout {
         spacing: 14px;
         alignment: Theme.rtl ? end : start;
-        VerticalLayout { alignment: center; IconTile { icon: root.icon; tile: 48px; } }
         VerticalLayout {
             alignment: center;
             spacing: 2px;
-            Text { text: title; color: Theme.text; font-size: 26px; font-weight: 700; horizontal-alignment: Theme.start; }
-            Text { text: sub; color: Theme.sub; font-size: 13px; horizontal-alignment: Theme.start; }
+            Text { text: title; color: Theme.text; font-size: 34px; font-weight: 800; horizontal-alignment: Theme.start; }
+            Text { text: sub; color: Theme.sub; font-size: 15px; font-weight: 500; horizontal-alignment: Theme.start; }
         }
     }
 }
@@ -27,10 +26,8 @@ component Banner inherits Rectangle {
     in property <string> action;
     callback act;
     height: 46px;
-    border-radius: 10px;
-    background: tone.with-alpha(0.14);
-    border-width: 1px;
-    border-color: tone;
+    border-radius: 16px;
+    background: tone.with-alpha(0.16);
     HorizontalLayout {
         padding-left: 12px;
         padding-right: 8px;
@@ -47,18 +44,18 @@ component PresetCard inherits Card {
     in property <string> sub;
     in-out property <bool> on;
     callback toggled(bool);
-    height: 68px;
-    HorizontalLayout {
-        padding: 14px;
-        spacing: 14px;
-        VerticalLayout { alignment: center; IconTile { icon: root.icon; } }
-        VerticalLayout {
-            alignment: center;
-            spacing: 2px;
-            Text { text: title; color: Theme.text; font-size: 14px; font-weight: 600; overflow: elide; horizontal-alignment: Theme.start; }
-            Text { text: sub; color: Theme.sub; font-size: 12px; overflow: elide; horizontal-alignment: Theme.start; }
+    height: 176px;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 4px;
+        HorizontalLayout {
+            IconTile { icon: root.icon; tile: 40px; }
+            Rectangle { horizontal-stretch: 1; }
+            Toggle { checked <=> root.on; toggled(v) => { root.toggled(v); } }
         }
-        VerticalLayout { alignment: center; Toggle { checked <=> root.on; toggled(v) => { root.toggled(v); } } }
+        Rectangle { vertical-stretch: 1; }
+        Text { text: title; color: Theme.text; font-size: 17px; font-weight: 700; overflow: elide; horizontal-alignment: Theme.start; }
+        Text { text: sub; color: Theme.sub; font-size: 12px; wrap: word-wrap; max-height: 34px; overflow: elide; horizontal-alignment: Theme.start; }
     }
 }
 
@@ -77,15 +74,15 @@ export component BackupPage inherits Rectangle {
                 spacing: 14px;
                 padding-right: 10px;
                 Rectangle {
-                    height: 140px;
+                    height: 168px;
                     DashedBox {
                         active: App.dragging;
                         TouchArea { mouse-cursor: pointer; clicked => { App.add-files(); } }
                         VerticalLayout {
                             alignment: center;
                             spacing: 5px;
-                            Icon { d: Icons.backup; size: 34px; tint: Theme.accent; x: (parent.width - self.width) / 2; }
-                            Text { text: Tr.drop-title; color: Theme.text; font-size: 16px; font-weight: 600; horizontal-alignment: center; }
+                            Icon { d: Icons.backup; size: 40px; tint: Theme.accent; x: (parent.width - self.width) / 2; }
+                            Text { text: Tr.drop-title; color: Theme.text; font-size: 20px; font-weight: 800; horizontal-alignment: center; }
                             Text { text: Tr.drop-sub; color: Theme.sub; font-size: 13px; horizontal-alignment: center; }
                             HorizontalLayout {
                                 alignment: center;
@@ -102,13 +99,13 @@ export component BackupPage inherits Rectangle {
                     VerticalLayout {
                         padding: 14px;
                         spacing: 8px;
-                        Text { text: Tr.selected-items + " (" + App.items.length + ")"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-alignment: Theme.start; }
+                        Text { text: Tr.selected-items + " (" + App.items.length + ")"; color: Theme.text; font-size: 20px; font-weight: 800; horizontal-alignment: Theme.start; }
                         if App.items.length == 0: Text { text: Tr.no-items; color: Theme.sub; font-size: 13px; horizontal-alignment: Theme.start; }
                         ListView {
                             for it[i] in App.items: Rectangle {
                                 height: 52px;
                                 background: ra.has-hover ? Theme.card-hover : transparent;
-                                border-radius: 8px;
+                                border-radius: 12px;
                                 ra := TouchArea { }
                                 HorizontalLayout {
                                     padding-left: 8px;
@@ -126,8 +123,13 @@ export component BackupPage inherits Rectangle {
                         }
                     }
                 }
-                Text { text: Tr.presets; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-alignment: Theme.start; }
-                PresetCard { icon: Icons.globe; title: Tr.browsers; sub: Tr.browsers-sub; on <=> App.preset-browsers; toggled(v) => { App.preset-changed(0, v); } }
+                Text { text: Tr.presets; color: Theme.text; font-size: 22px; font-weight: 800; horizontal-alignment: Theme.start; }
+                HorizontalLayout {
+                    spacing: 14px;
+                    PresetCard { icon: Icons.globe; title: Tr.browsers; sub: Tr.browsers-sub; on <=> App.preset-browsers; toggled(v) => { App.preset-changed(0, v); } }
+                    PresetCard { icon: Icons.wifi; title: Tr.wifi; sub: Tr.wifi-sub; on <=> App.preset-wifi; toggled(v) => { App.preset-changed(1, v); } }
+                    PresetCard { icon: Icons.apps; title: Tr.programs; sub: Tr.programs-sub; on <=> App.preset-programs; toggled(v) => { App.preset-changed(2, v); } }
+                }
                 if App.preset-browsers: Card {
                     height: 56px + App.browser-rows.length * 34px + (App.browser-rows.length == 0 ? 24px : 0px) + (App.browser-running ? 46px : 0px);
                     VerticalLayout {
@@ -152,9 +154,7 @@ export component BackupPage inherits Rectangle {
                         }
                     }
                 }
-                PresetCard { icon: Icons.wifi; title: Tr.wifi; sub: Tr.wifi-sub; on <=> App.preset-wifi; toggled(v) => { App.preset-changed(1, v); } }
                 if App.preset-wifi && App.password == "": Banner { text: Tr.wifi-warn; tone: Theme.red; }
-                PresetCard { icon: Icons.apps; title: Tr.programs; sub: Tr.programs-sub; on <=> App.preset-programs; toggled(v) => { App.preset-changed(2, v); } }
                 Card {
                     height: 104px;
                     VerticalLayout {
@@ -191,9 +191,9 @@ export component BackupPage inherits Rectangle {
             }
         }
         Card {
-            height: 64px;
+            height: 72px;
             HorizontalLayout {
-                padding-left: 16px;
+                padding-left: 20px;
                 padding-right: 12px;
                 spacing: 12px;
                 alignment: Theme.rtl ? end : start;
@@ -202,7 +202,7 @@ export component BackupPage inherits Rectangle {
                 Rectangle { horizontal-stretch: 1; }
                 Text { text: Tr.compression; color: Theme.sub; font-size: 13px; vertical-alignment: center; }
                 VerticalLayout { alignment: center; ComboBox { model: [Tr.fast, Tr.recommended, Tr.maximum]; current-index <=> App.level; width: 150px; } }
-                VerticalLayout { alignment: center; PButton { text: Tr.start-backup; icon: Icons.play; width: 170px; height: 40px; enabled: !App.busy; clicked => { App.start-backup(); } } }
+                VerticalLayout { alignment: center; PButton { text: Tr.start-backup; icon: Icons.play; width: 170px; height: 44px; enabled: !App.busy; clicked => { App.start-backup(); } } }
             }
         }
     }
@@ -221,8 +221,8 @@ export component RestorePage inherits Rectangle {
                 VerticalLayout {
                     alignment: center;
                     spacing: 8px;
-                    Icon { d: Icons.restore; size: 44px; tint: Theme.accent; x: (parent.width - self.width) / 2; }
-                    Text { text: Tr.open-archive; color: Theme.text; font-size: 18px; font-weight: 600; horizontal-alignment: center; }
+                    Icon { d: Icons.restore; size: 56px; tint: Theme.accent; x: (parent.width - self.width) / 2; }
+                    Text { text: Tr.open-archive; color: Theme.text; font-size: 26px; font-weight: 800; horizontal-alignment: center; }
                     Text { text: Tr.open-sub; color: Theme.sub; font-size: 13px; horizontal-alignment: center; }
                 }
             }
@@ -300,14 +300,14 @@ export component RestorePage inherits Rectangle {
             }
             Text { text: App.resolved-path == "" ? "" : Tr.resolved + ": " + App.resolved-path; color: Theme.sub; font-size: 12px; overflow: elide; horizontal-alignment: Theme.start; }
             Card {
-                height: 64px;
+                height: 72px;
                 HorizontalLayout {
-                    padding-left: 16px;
+                    padding-left: 20px;
                     padding-right: 12px;
                     spacing: 12px;
                     VerticalLayout { alignment: center; Rectangle { width: 10px; height: 10px; border-radius: 5px; background: Theme.green; } }
                     Text { text: App.restore-footer; color: Theme.text; font-size: 14px; font-weight: 600; vertical-alignment: center; horizontal-alignment: Theme.start; }
-                    VerticalLayout { alignment: center; PButton { text: Tr.do-restore; icon: Icons.restore; width: 160px; height: 40px; enabled: !App.busy; clicked => { App.start-restore(); } } }
+                    VerticalLayout { alignment: center; PButton { text: Tr.do-restore; icon: Icons.restore; width: 160px; height: 44px; enabled: !App.busy; clicked => { App.start-restore(); } } }
                 }
             }
         }
