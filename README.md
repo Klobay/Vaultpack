@@ -31,7 +31,7 @@ Vaultpack is a native Windows desktop app written 100% in Rust. It packs the fil
 ### Special presets
 | Preset | What it saves | Restore |
 |---|---|---|
-| **Browser profiles** | Chrome, Edge, Brave, Opera, Vivaldi, Firefox: bookmarks, preferences, extensions, history (Firefox: full profile). You pick which profiles. | Files go back to their original profile folders |
+| **Browser profiles** | Chrome, Edge, Brave, Opera, Vivaldi, Firefox, Zen, LibreWolf, Waterfox: bookmarks, preferences, extensions, history (Firefox-based browsers like Zen: full profile). You pick which profiles. | Files go back to their original profile folders |
 | **Wi-Fi networks** | All saved profiles with keys via `netsh wlan export` | Re-added with `netsh wlan add profile` |
 | **Installed programs** | Registry uninstall entries plus `winget` matches (name, version, publisher, winget ID) | Checklist; matched programs install via `winget`, the rest become an exportable manual-reinstall list (CSV/TXT) |
 
@@ -71,32 +71,86 @@ Grab the latest build from the [Releases](../../releases) page:
 
 ## Build from source
 
-**Requirements**
-- Windows 10/11 x64
-- [Rust](https://rustup.rs) stable **1.95 or newer** (MSVC toolchain)
-- Visual Studio Build Tools with "Desktop development with C++"
-- Optional: [NSIS](https://nsis.sourceforge.io) for the installer
+Follow these steps to build your own copy of Vaultpack on Windows.
 
-```powershell
+### 1. Install the requirements
+
+| Tool | Why | Where to get it |
+|---|---|---|
+| **Git** | to clone the repo | https://git-scm.com/download/win |
+| **Rust** (stable **1.95 or newer**, MSVC toolchain) | to compile the app | https://rustup.rs (download and run `rustup-init.exe`, choose the default install) |
+| **Visual Studio Build Tools** with the **"Desktop development with C++"** workload | the linker and Windows SDK Rust needs | https://visualstudio.microsoft.com/visual-cpp-build-tools/ (rustup will offer to install it) |
+| **NSIS** (optional) | only for building the installer | https://nsis.sourceforge.io |
+
+After installing Rust, close and reopen your terminal, then check it:
+
+```cmd
+rustc --version
+cargo --version
+```
+
+If `rustc` shows a version older than 1.95, update it:
+
+```cmd
+rustup update stable
+```
+
+### 2. Clone the repo
+
+```cmd
 git clone https://github.com/<your-username>/vaultpack.git
+```
+
+### 3. Open the project folder in a terminal
+
+Go into the folder that contains `Cargo.toml`:
+
+```cmd
 cd vaultpack
+```
+
+Tip: you can also open the folder in File Explorer, click the address bar, type `cmd` and press Enter.
+
+### 4. Build
+
+```cmd
 cargo build --release
 ```
 
-The binary is `target\release\vaultpack.exe`.
+The first build takes several minutes because it downloads and compiles all dependencies. Later builds are much faster.
 
-To produce the portable exe and installer in `dist\`:
+When it finishes, your own version of the app is here:
 
-```powershell
-.\build.ps1
+```
+target\release\vaultpack.exe
 ```
 
-If the window doesn't open on a machine without OpenGL:
+Run it directly or copy it anywhere. It is a single, self-contained exe.
+
+### 5. (Optional) Build the portable exe and installer
+
+With NSIS installed, run this from the project folder:
 
 ```powershell
-$env:SLINT_BACKEND = "winit-software"
-.\target\release\vaultpack.exe
+powershell -ExecutionPolicy Bypass -File .\build.ps1
 ```
+
+Output in the `dist\` folder:
+- `Vaultpack-Portable.exe`: single exe, no install
+- `Vaultpack-Setup.exe`: installer (needs NSIS)
+
+If NSIS is not installed, the script still builds the portable exe and skips the installer.
+
+### Troubleshooting
+
+- **`link.exe not found` or similar linker errors:** install Visual Studio Build Tools with the "Desktop development with C++" workload, then reopen the terminal.
+- **Rust version errors:** run `rustup update stable`.
+- **The window doesn't open or is black (no OpenGL):**
+  ```powershell
+  $env:SLINT_BACKEND = "winit-software"
+  .\target\release\vaultpack.exe
+  ```
+- **PowerShell blocks `build.ps1`:** use the `-ExecutionPolicy Bypass` command shown above.
 
 ## Tests
 
