@@ -1,0 +1,215 @@
+import { ScrollView, Palette } from "std-widgets.slint";
+import { Theme, Icons } from "theme.slint";
+import { Icon, PButton, IconButton, Card, Bar, Grip } from "widgets.slint";
+import { App, Tr } from "state.slint";
+import { BackupPage, RestorePage, SettingsPage } from "pages.slint";
+
+export { App, Tr, ItemRow, TreeRow, BrowserRow } from "state.slint";
+export { Theme } from "theme.slint";
+
+component NavItem inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <bool> active;
+    callback clicked;
+    height: 44px;
+    border-radius: 10px;
+    background: active ? Theme.accent-soft : ta.has-hover ? Theme.card-hover : transparent;
+    Rectangle {
+        x: Theme.rtl ? parent.width - 3px : 0px;
+        y: 10px;
+        width: 3px;
+        height: 22px;
+        border-radius: 2px;
+        background: Theme.accent;
+        visible: active;
+    }
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 12px;
+        alignment: Theme.rtl ? end : start;
+        VerticalLayout { alignment: center; Icon { d: icon; size: 20px; tint: active ? Theme.accent : Theme.sub; } }
+        Text { text: root.text; color: active ? Theme.text : Theme.sub; font-size: 14px; font-weight: active ? 600 : 400; vertical-alignment: center; }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+export component VaultpackWindow inherits Window {
+    title: "Vaultpack";
+    no-frame: true;
+    background: transparent;
+    preferred-width: 1080px;
+    preferred-height: 720px;
+    min-width: 900px;
+    min-height: 640px;
+    default-font-family: "Segoe UI Variable";
+    icon: @image-url("../assets/vaultpack.png");
+    in-out property <int> mode: App.theme-index;
+    // 0 = System (follow Windows), 1 = Dark, 2 = Light. Always resolved to a real dark/light value so
+    // both our colours and the built-in widgets (combo boxes, scroll bars) agree with each other.
+    property <bool> system-dark: Theme.system-dark;
+    function apply-mode() {
+        Palette.color-scheme = mode == 1 ? ColorScheme.dark : mode == 2 ? ColorScheme.light : (system-dark ? ColorScheme.dark : ColorScheme.light);
+    }
+    init => { apply-mode(); }
+    changed mode => { apply-mode(); }
+    changed system-dark => { apply-mode(); }
+
+    Rectangle {
+        border-radius: App.maximized || Theme.dwm-round ? 0px : 12px;
+        clip: true;
+        background: Theme.window-bg;
+        border-width: Theme.dwm-round ? 0px : 1px;
+        border-color: Theme.border;
+
+        Rectangle {
+            x: Theme.rtl ? parent.width - self.width : 0px;
+            width: 220px;
+            background: Theme.nav-bg;
+            VerticalLayout {
+                padding: 14px;
+                padding-top: 22px;
+                spacing: 6px;
+                HorizontalLayout {
+                    spacing: 10px;
+                    padding-bottom: 18px;
+                    alignment: Theme.rtl ? end : start;
+                    Image {
+                        source: @image-url("../assets/vaultpack.png");
+                        width: 36px;
+                        height: 36px;
+                        image-fit: contain;
+                    }
+                    Text { text: "Vaultpack"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; }
+                }
+                NavItem { icon: Icons.backup; text: Tr.backup; active: App.page == 0; clicked => { App.page = 0; } }
+                NavItem { icon: Icons.restore; text: Tr.restore; active: App.page == 1; clicked => { App.page = 1; } }
+                NavItem { icon: Icons.settings; text: Tr.settings; active: App.page == 2; clicked => { App.page = 2; } }
+                Rectangle { vertical-stretch: 1; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    padding: 8px;
+                    alignment: Theme.rtl ? end : start;
+                    VerticalLayout { alignment: center; Icon { d: Icons.info; size: 16px; tint: Theme.sub; } }
+                    Text { text: App.version; color: Theme.sub; font-size: 13px; vertical-alignment: center; }
+                }
+            }
+        }
+
+        Rectangle {
+            x: Theme.rtl ? 0px : 220px;
+            width: parent.width - 220px;
+            Rectangle {
+                y: 40px;
+                height: parent.height - 40px;
+                VerticalLayout {
+                    padding: 8px;
+                    padding-left: 30px;
+                    padding-right: 30px;
+                    padding-bottom: 24px;
+                    if App.page == 0: BackupPage { }
+                    if App.page == 1: RestorePage { }
+                    if App.page == 2: SettingsPage { }
+                }
+            }
+            Rectangle {
+                height: 40px;
+                y: 0;
+                TouchArea {
+                    pointer-event(e) => {
+                        if e.kind == PointerEventKind.down && e.button == PointerEventButton.left { App.drag-window(); }
+                    }
+                    double-clicked => { App.toggle-maximize(); }
+                }
+                HorizontalLayout {
+                    alignment: Theme.rtl ? start : end;
+                    spacing: 0px;
+                    Rectangle {
+                        width: 46px;
+                        background: m1.has-hover ? Theme.card-hover : transparent;
+                        Icon { d: Icons.minimize; size: 16px; tint: Theme.text; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+                        m1 := TouchArea { clicked => { App.minimize(); } }
+                    }
+                    Rectangle {
+                        width: 46px;
+                        background: m2.has-hover ? Theme.card-hover : transparent;
+                        Icon { d: Icons.maximize; size: 14px; tint: Theme.text; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+                        m2 := TouchArea { clicked => { App.toggle-maximize(); } }
+                    }
+                    Rectangle {
+                        width: 46px;
+                        background: m3.has-hover ? #e5484d : transparent;
+                        Icon { d: Icons.close; size: 16px; tint: m3.has-hover ? white : Theme.text; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+                        m3 := TouchArea { clicked => { App.close-window(); } }
+                    }
+                }
+            }
+        }
+
+        if App.busy: Rectangle {
+            background: Theme.dark ? #000000b0 : #1b223366;
+            TouchArea { }
+            Card {
+                width: min(560px, parent.width - 60px);
+                height: 300px;
+                background: Theme.dialog-bg;
+                VerticalLayout {
+                    padding: 24px;
+                    spacing: 10px;
+                    Text { text: App.job-title; color: Theme.text; font-size: 20px; font-weight: 700; horizontal-alignment: Theme.start; }
+                    Text { text: App.job-status; color: Theme.sub; font-size: 13px; horizontal-alignment: Theme.start; }
+                    Text { text: Tr.overall + "  " + Math.round(App.overall * 100) + "%   " + App.counters; color: Theme.text; font-size: 13px; horizontal-alignment: Theme.start; }
+                    Bar { value: App.overall; }
+                    Text { text: Tr.current-file + ": " + App.current-file; color: Theme.sub; font-size: 12px; overflow: elide; horizontal-alignment: Theme.start; }
+                    Bar { value: App.file-progress; height: 5px; }
+                    Text { text: Tr.speed + ": " + App.speed + "     " + Tr.eta + ": " + App.eta; color: Theme.text; font-size: 13px; horizontal-alignment: Theme.start; }
+                    Rectangle { vertical-stretch: 1; }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: Theme.rtl ? start : end;
+                        PButton { text: App.paused ? Tr.resume : Tr.pause; icon: App.paused ? Icons.play : Icons.pause; primary: false; width: 130px; clicked => { App.pause-toggle(); } }
+                        PButton { text: Tr.cancel; width: 120px; clicked => { App.cancel-job(); } }
+                    }
+                }
+            }
+        }
+
+        if App.summary-open: Rectangle {
+            background: Theme.dark ? #000000b0 : #1b223366;
+            TouchArea { }
+            Card {
+                width: min(640px, parent.width - 60px);
+                height: min(520px, parent.height - 60px);
+                background: Theme.dialog-bg;
+                VerticalLayout {
+                    padding: 24px;
+                    spacing: 12px;
+                    Text { text: App.summary-title; color: Theme.text; font-size: 20px; font-weight: 700; horizontal-alignment: Theme.start; }
+                    Rectangle {
+                        vertical-stretch: 1;
+                        border-radius: 8px;
+                        background: Theme.inset-bg;
+                        clip: true;
+                        ScrollView {
+                            Text { text: App.summary-text; color: Theme.text; font-size: 12px; wrap: word-wrap; width: parent.width - 20px; x: 10px; y: 8px; }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: Theme.rtl ? start : end;
+                        if App.summary-has-manual: PButton { text: Tr.export-programs; primary: false; width: 190px; clicked => { App.export-programs(); } }
+                        PButton { text: Tr.export-log; primary: false; width: 130px; clicked => { App.export-log(); } }
+                        PButton { text: Tr.close; width: 110px; clicked => { App.close-summary(); } }
+                    }
+                }
+            }
+        }
+
+        Grip { x: parent.width - 5px; width: 5px; y: 10px; height: parent.height - 20px; dir: 0; mouse-cursor: e-resize; resize(d) => { App.resize-window(d); } }
+        Grip { x: 0; width: 5px; y: 10px; height: parent.height - 20px; dir: 1; mouse-cursor: w-resize; resize(d) => { App.resize-window(d); } }
+        Grip { y: parent.height - 5px; height: 5px; x: 10px; width: parent.width - 20px; dir: 2; mouse-cursor: s-resize; resize(d) => { App.resize-window(d); } }
+        Grip { y: parent.height - 10px; height: 10px; x: parent.width - 10px; width: 10px; dir: 3; mouse-cursor: se-resize; resize(d) => { App.resize-window(d); } }
+        Grip { y: parent.height - 10px; height: 10px; x: 0; width: 10px; dir: 4; mouse-cursor: sw-resize; resize(d) => { App.resize-window(d); } }
+    }
+}
