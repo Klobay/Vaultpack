@@ -3,28 +3,28 @@ import { Palette } from "std-widgets.slint";
 export global Theme {
     in-out property <bool> glass: false;
     in-out property <bool> rtl: false;
-    // What Windows itself is currently set to (filled in from Rust). Only used when the Theme setting is "System".
+    in-out property <bool> dwm-round: false;
     in-out property <bool> system-dark: true;
     out property <bool> dark: Palette.color-scheme == ColorScheme.dark;
-    out property <color> window-bg: glass ? (dark ? #1c1c1e88 : #f3f4f688) : (dark ? #1c1c1e : #f4f5f7);
-    out property <color> nav-bg: glass ? (dark ? #12121466 : #ffffff55) : (dark ? #151517 : #ebedf0);
-    out property <color> card: dark ? #262628cc : #ffffffdd;
-    out property <color> card-hover: dark ? #313134 : #f1f3f6;
-    out property <color> border: dark ? #3b3b3f : #d8dce3;
-    out property <color> text: dark ? #f2f2f3 : #1b1d22;
-    out property <color> sub: dark ? #a1a1a8 : #5f6572;
-    // Surfaces used by dialogs and text fields
-    out property <color> dialog-bg: dark ? #262628 : #ffffff;
-    out property <color> inset-bg: dark ? #19191b : #f3f4f6;
-    out property <color> field-bg: dark ? #19191bcc : #ffffffcc;
-    out property <color> accent: #2f7df6;
-    out property <color> accent-hover: #4a90ff;
-    out property <color> accent-down: #2468d1;
-    out property <color> accent-soft: dark ? #2f7df626 : #2f7df61c;
-    out property <color> green: #34c77b;
-    out property <color> amber: #f2b441;
-    out property <color> red: #ef5b5b;
-    out property <color> disabled: dark ? #48484d : #c5cad4;
+    out property <color> window-bg: glass ? (dark ? #14151a99 : #f5f6f9aa) : (dark ? #131418 : #f4f5f8);
+    out property <color> nav-bg: glass ? (dark ? #0c0d1066 : #ffffff66) : (dark ? #181a1f : #eceef3);
+    out property <color> card: dark ? #1d1f25 : #ffffff;
+    out property <color> card-hover: dark ? #272a32 : #eef0f5;
+    out property <color> border: dark ? #2c2f38 : #dde0e8;
+    out property <color> text: dark ? #eceef3 : #161922;
+    out property <color> sub: dark ? #9b9fad : #636877;
+    out property <color> dialog-bg: dark ? #1d1f25 : #ffffff;
+    out property <color> inset-bg: dark ? #14151a : #f3f4f8;
+    out property <color> field-bg: dark ? #15161b : #f6f7fa;
+    out property <color> accent: dark ? #4d8dff : #2f6fed;
+    out property <color> accent-hover: dark ? #6aa0ff : #4883f5;
+    out property <color> accent-down: dark ? #3b78e6 : #2459c9;
+    out property <color> accent-soft: dark ? #4d8dff24 : #2f6fed18;
+    out property <color> green: #2fbf71;
+    out property <color> amber: #e8a62b;
+    out property <color> red: #e5534b;
+    out property <color> disabled: dark ? #3a3d47 : #c8ccd6;
+    out property <color> shadow: dark ? #00000066 : #1b223320;
     out property <TextHorizontalAlignment> start: rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
 }
 

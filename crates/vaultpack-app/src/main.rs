@@ -390,7 +390,29 @@ fn start_restore(app: &VaultpackWindow, st: &Shared) {
     });
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
+fn handle_drop(a: &VaultpackWindow, st: &Shared, paths: Vec<PathBuf>) {
+    let first_vpk = paths.iter().find(|p| p.extension().map_or(false, |e| e.eq_ignore_ascii_case("vpk"))).cloned();
+    if let Some(v) = first_vpk {
+        load_archive(a, st, &v, None);
+    } else if a.global::<App>().get_page() == 1 {
+        if let Some(p) = paths.into_iter().find(|p| p.is_file()) {
+            load_archive(a, st, &p, None);
+        }
+    } else {
+        a.global::<App>().set_page(0);
+        add_paths(a, st, paths);
+    }
+}
+
 fn pump(app: &VaultpackWindow, st: &Shared) {
+    #[cfg(windows)]
+    {
+        let dropped = winapi::take_dropped();
+        if !dropped.is_empty() {
+            handle_drop(app, st, dropped);
+        }
+    }
     let mut scans = Vec::new();
     {
         let s = st.borrow();
@@ -552,44 +574,106 @@ fn apply_backdrop(app: &VaultpackWindow) {
     let mode = app.global::<App>().get_theme_index();
     let sys_dark = app.global::<Theme>().get_system_dark();
     let dark = mode == 1 || (mode == 0 && sys_dark);
-    let tint = if dark { (28, 28, 30, 160) } else { (243, 244, 246, 160) };
-    let ok = app
-        .window()
-        .with_winit_window(|win| window_vibrancy::apply_mica(win, Some(dark)).or_else(|_| window_vibrancy::apply_acrylic(win, Some(tint))).is_ok())
-        .unwrap_or(false);
+    let rounded = hwnd_of(app).map_or(false, winapi::round_corners);
+    app.global::<Theme>().set_dwm_round(rounded);
+    let ok = rounded && app.window().with_winit_window(|win| window_vibrancy::apply_mica(win, Some(dark)).is_ok()).unwrap_or(false);
     app.global::<Theme>().set_glass(ok);
 }
 
-/// Windows blocks drag & drop from a normal Explorer into an elevated (administrator) window
-/// unless the elevated process explicitly lets those messages through (UIPI).
 #[cfg(windows)]
-fn allow_drops_when_elevated(app: &VaultpackWindow) {
-    use slint::winit_030::WinitWindowAccessor;
-    use slint::winit_030::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+mod winapi {
+    use std::ffi::c_void;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicIsize, Ordering};
+    use std::sync::Mutex;
+
+    #[link(name = "user32")]
     extern "system" {
-        fn ChangeWindowMessageFilterEx(hwnd: isize, message: u32, action: u32, change_filter_struct: *mut core::ffi::c_void) -> i32;
-        fn ChangeWindowMessageFilter(message: u32, flag: u32) -> i32;
+        fn ChangeWindowMessageFilterEx(hwnd: isize, message: u32, action: u32, filter: *mut c_void) -> i32;
+        fn SetWindowLongPtrW(hwnd: isize, index: i32, value: isize) -> isize;
+        fn CallWindowProcW(prev: isize, hwnd: isize, msg: u32, wparam: usize, lparam: isize) -> isize;
     }
-    const MSGFLT_ADD: u32 = 1;
+
+    #[link(name = "shell32")]
+    extern "system" {
+        fn DragAcceptFiles(hwnd: isize, accept: i32);
+        fn DragQueryFileW(hdrop: isize, index: u32, buffer: *mut u16, len: u32) -> u32;
+        fn DragFinish(hdrop: isize);
+    }
+
+    #[link(name = "ole32")]
+    extern "system" {
+        fn RevokeDragDrop(hwnd: isize) -> i32;
+    }
+
+    #[link(name = "dwmapi")]
+    extern "system" {
+        fn DwmSetWindowAttribute(hwnd: isize, attribute: u32, value: *const c_void, size: u32) -> i32;
+    }
+
+    const GWLP_WNDPROC: i32 = -4;
+    const WM_DROPFILES: u32 = 0x0233;
+    const WM_COPYDATA: u32 = 0x004A;
+    const WM_COPYGLOBALDATA: u32 = 0x0049;
     const MSGFLT_ALLOW: u32 = 1;
-    // WM_DROPFILES, WM_COPYDATA, WM_COPYGLOBALDATA
-    const MSGS: [u32; 3] = [0x0233, 0x004A, 0x0049];
-    let hwnd = app
-        .window()
+
+    static ORIGINAL: AtomicIsize = AtomicIsize::new(0);
+    static DROPPED: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
+
+    unsafe extern "system" fn proc(hwnd: isize, msg: u32, wparam: usize, lparam: isize) -> isize {
+        if msg == WM_DROPFILES {
+            let hdrop = wparam as isize;
+            let count = DragQueryFileW(hdrop, 0xFFFF_FFFF, std::ptr::null_mut(), 0);
+            for i in 0..count {
+                let len = DragQueryFileW(hdrop, i, std::ptr::null_mut(), 0) as usize;
+                let mut buf = vec![0u16; len + 1];
+                DragQueryFileW(hdrop, i, buf.as_mut_ptr(), (len + 1) as u32);
+                if let Ok(mut q) = DROPPED.lock() {
+                    q.push(PathBuf::from(String::from_utf16_lossy(&buf[..len])));
+                }
+            }
+            DragFinish(hdrop);
+            return 0;
+        }
+        CallWindowProcW(ORIGINAL.load(Ordering::SeqCst), hwnd, msg, wparam, lparam)
+    }
+
+    pub fn enable_elevated_drops(hwnd: isize) {
+        unsafe {
+            for m in [WM_DROPFILES, WM_COPYDATA, WM_COPYGLOBALDATA] {
+                ChangeWindowMessageFilterEx(hwnd, m, MSGFLT_ALLOW, std::ptr::null_mut());
+            }
+            RevokeDragDrop(hwnd);
+            if ORIGINAL.load(Ordering::SeqCst) == 0 {
+                let prev = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, proc as usize as isize);
+                ORIGINAL.store(prev, Ordering::SeqCst);
+            }
+            DragAcceptFiles(hwnd, 1);
+        }
+    }
+
+    pub fn take_dropped() -> Vec<PathBuf> {
+        DROPPED.lock().map(|mut q| std::mem::take(&mut *q)).unwrap_or_default()
+    }
+
+    pub fn round_corners(hwnd: isize) -> bool {
+        let pref: u32 = 2;
+        unsafe { DwmSetWindowAttribute(hwnd, 33, &pref as *const u32 as *const c_void, 4) == 0 }
+    }
+}
+
+#[cfg(windows)]
+fn hwnd_of(app: &VaultpackWindow) -> Option<isize> {
+    use slint::winit_030::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    use slint::winit_030::WinitWindowAccessor;
+    app.window()
         .with_winit_window(|win| match win.window_handle().map(|h| h.as_raw()) {
             Ok(RawWindowHandle::Win32(h)) => Some(h.hwnd.get()),
             _ => None,
         })
-        .flatten();
-    unsafe {
-        for m in MSGS {
-            ChangeWindowMessageFilter(m, MSGFLT_ADD);
-            if let Some(h) = hwnd {
-                ChangeWindowMessageFilterEx(h, m, MSGFLT_ALLOW, core::ptr::null_mut());
-            }
-        }
-    }
+        .flatten()
 }
+
 
 fn main() -> Result<(), slint::PlatformError> {
     use slint::winit_030::{winit, EventResult, WinitWindowAccessor};
@@ -1107,7 +1191,9 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         apply_backdrop(&app);
         if elevated {
-            allow_drops_when_elevated(&app);
+            if let Some(h) = hwnd_of(&app) {
+                winapi::enable_elevated_drops(h);
+            }
         }
     }
     app.run()

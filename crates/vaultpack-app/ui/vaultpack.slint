@@ -12,8 +12,8 @@ component NavItem inherits Rectangle {
     in property <string> text;
     in property <bool> active;
     callback clicked;
-    height: 42px;
-    border-radius: 8px;
+    height: 44px;
+    border-radius: 10px;
     background: active ? Theme.accent-soft : ta.has-hover ? Theme.card-hover : transparent;
     Rectangle {
         x: Theme.rtl ? parent.width - 3px : 0px;
@@ -29,7 +29,7 @@ component NavItem inherits Rectangle {
         padding-right: 16px;
         spacing: 12px;
         alignment: Theme.rtl ? end : start;
-        Icon { d: icon; size: 20px; tint: active ? Theme.accent : Theme.sub; y: (parent.height - self.height) / 2; }
+        VerticalLayout { alignment: center; Icon { d: icon; size: 20px; tint: active ? Theme.accent : Theme.sub; } }
         Text { text: root.text; color: active ? Theme.text : Theme.sub; font-size: 14px; font-weight: active ? 600 : 400; vertical-alignment: center; }
     }
     ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
@@ -57,10 +57,10 @@ export component VaultpackWindow inherits Window {
     changed system-dark => { apply-mode(); }
 
     Rectangle {
-        border-radius: App.maximized ? 0px : 12px;
+        border-radius: App.maximized || Theme.dwm-round ? 0px : 12px;
         clip: true;
         background: Theme.window-bg;
-        border-width: 1px;
+        border-width: Theme.dwm-round ? 0px : 1px;
         border-color: Theme.border;
 
         Rectangle {
@@ -77,8 +77,8 @@ export component VaultpackWindow inherits Window {
                     alignment: Theme.rtl ? end : start;
                     Image {
                         source: @image-url("../assets/vaultpack.png");
-                        width: 38px;
-                        height: 38px;
+                        width: 36px;
+                        height: 36px;
                         image-fit: contain;
                     }
                     Text { text: "Vaultpack"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; }
@@ -91,8 +91,8 @@ export component VaultpackWindow inherits Window {
                     spacing: 8px;
                     padding: 8px;
                     alignment: Theme.rtl ? end : start;
-                    Icon { d: Icons.info; size: 16px; tint: Theme.sub; }
-                    Text { text: App.version; color: Theme.sub; font-size: 13px; }
+                    VerticalLayout { alignment: center; Icon { d: Icons.info; size: 16px; tint: Theme.sub; } }
+                    Text { text: App.version; color: Theme.sub; font-size: 13px; vertical-alignment: center; }
                 }
             }
         }
@@ -105,9 +105,9 @@ export component VaultpackWindow inherits Window {
                 height: parent.height - 40px;
                 VerticalLayout {
                     padding: 8px;
-                    padding-left: 28px;
-                    padding-right: 28px;
-                    padding-bottom: 20px;
+                    padding-left: 30px;
+                    padding-right: 30px;
+                    padding-bottom: 24px;
                     if App.page == 0: BackupPage { }
                     if App.page == 1: RestorePage { }
                     if App.page == 2: SettingsPage { }
@@ -128,19 +128,19 @@ export component VaultpackWindow inherits Window {
                     Rectangle {
                         width: 46px;
                         background: m1.has-hover ? Theme.card-hover : transparent;
-                        Icon { d: Icons.minimize; size: 16px; tint: Theme.text; x: 15px; y: 12px; }
+                        Icon { d: Icons.minimize; size: 16px; tint: Theme.text; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
                         m1 := TouchArea { clicked => { App.minimize(); } }
                     }
                     Rectangle {
                         width: 46px;
                         background: m2.has-hover ? Theme.card-hover : transparent;
-                        Icon { d: Icons.maximize; size: 14px; tint: Theme.text; x: 16px; y: 13px; }
+                        Icon { d: Icons.maximize; size: 14px; tint: Theme.text; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
                         m2 := TouchArea { clicked => { App.toggle-maximize(); } }
                     }
                     Rectangle {
                         width: 46px;
                         background: m3.has-hover ? #e5484d : transparent;
-                        Icon { d: Icons.close; size: 16px; tint: m3.has-hover ? white : Theme.text; x: 15px; y: 12px; }
+                        Icon { d: Icons.close; size: 16px; tint: m3.has-hover ? white : Theme.text; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
                         m3 := TouchArea { clicked => { App.close-window(); } }
                     }
                 }
@@ -148,7 +148,7 @@ export component VaultpackWindow inherits Window {
         }
 
         if App.busy: Rectangle {
-            background: #000000a0;
+            background: Theme.dark ? #000000b0 : #1b223366;
             TouchArea { }
             Card {
                 width: min(560px, parent.width - 60px);
@@ -176,7 +176,7 @@ export component VaultpackWindow inherits Window {
         }
 
         if App.summary-open: Rectangle {
-            background: #000000a0;
+            background: Theme.dark ? #000000b0 : #1b223366;
             TouchArea { }
             Card {
                 width: min(640px, parent.width - 60px);

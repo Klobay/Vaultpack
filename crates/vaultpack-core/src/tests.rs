@@ -292,3 +292,16 @@ fn cancel_leaves_no_partial() {
     assert!(!dest.exists());
     assert!(!d.path().join("o.vpk.partial").exists());
 }
+
+#[test]
+fn zen_and_firefox_detected() {
+    let d = tempfile::tempdir().unwrap();
+    fs::create_dir_all(d.path().join("zen/Profiles/abc.Default (release)")).unwrap();
+    fs::write(d.path().join("zen/Profiles/abc.Default (release)/places.sqlite"), "x").unwrap();
+    fs::create_dir_all(d.path().join("Mozilla/Firefox/Profiles/xyz.default")).unwrap();
+    let env = Env::default().with("APPDATA", &d.path().to_string_lossy());
+    let found = presets::detect_browsers(&env, mock(false).as_ref());
+    assert!(found.iter().any(|b| b.browser == "Zen" && b.group().starts_with("browsers/Zen/")));
+    assert!(found.iter().any(|b| b.browser == "Firefox"));
+    assert!(found.iter().find(|b| b.browser == "Zen").unwrap().paths().len() == 1);
+}

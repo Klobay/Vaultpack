@@ -88,12 +88,24 @@ pub fn detect_browsers(env: &Env, sys: &dyn System) -> Vec<BrowserProfile> {
     if let Some(r) = &roaming {
         out.extend(chromium_profiles("Opera", "opera.exe", r.join("Opera Software").join("Opera Stable"), true, sys));
         out.extend(chromium_profiles("Opera GX", "opera.exe", r.join("Opera Software").join("Opera GX Stable"), true, sys));
-        let ff = r.join("Mozilla").join("Firefox").join("Profiles");
-        if let Ok(rd) = fs::read_dir(&ff) {
-            let running = sys.process_running("firefox.exe");
-            for e in rd.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()) {
-                let name = e.file_name().to_string_lossy().to_string();
-                out.push(BrowserProfile { browser: "Firefox".into(), name, dir: e.path(), size: dir_size(&e.path()), kind: BrowserKind::Firefox, image: "firefox.exe".into(), running, shared: Vec::new() });
+        let gecko: [(&str, &str, [&str; 2]); 4] = [
+            ("Firefox", "firefox.exe", ["Mozilla", "Firefox"]),
+            ("Zen", "zen.exe", ["zen", ""]),
+            ("LibreWolf", "librewolf.exe", ["LibreWolf", ""]),
+            ("Waterfox", "waterfox.exe", ["Waterfox", ""]),
+        ];
+        for (browser, image, parts) in gecko {
+            let mut base = r.clone();
+            for p in parts.iter().filter(|p| !p.is_empty()) {
+                base = base.join(p);
+            }
+            let profiles = base.join("Profiles");
+            if let Ok(rd) = fs::read_dir(&profiles) {
+                let running = sys.process_running(image);
+                for e in rd.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()) {
+                    let name = e.file_name().to_string_lossy().to_string();
+                    out.push(BrowserProfile { browser: browser.into(), name, dir: e.path(), size: dir_size(&e.path()), kind: BrowserKind::Firefox, image: image.into(), running, shared: Vec::new() });
+                }
             }
         }
     }
