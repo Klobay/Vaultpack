@@ -1,0 +1,354 @@
+import { ComboBox, ListView, ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "theme.slint";
+import { Icon, PButton, IconButton, Card, Check3, DashedBox, Bar, Field, Toggle } from "widgets.slint";
+import { App, Tr, ItemRow, TreeRow, BrowserRow } from "state.slint";
+
+component PageHeader inherits Rectangle {
+    in property <string> icon;
+    in property <string> title;
+    in property <string> sub;
+    height: 56px;
+    HorizontalLayout {
+        spacing: 14px;
+        alignment: Theme.rtl ? end : start;
+        Icon { d: icon; size: 34px; tint: Theme.accent; y: (parent.height - self.height) / 2; }
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            Text { text: title; color: Theme.text; font-size: 26px; font-weight: 700; horizontal-alignment: Theme.start; }
+            Text { text: sub; color: Theme.sub; font-size: 13px; horizontal-alignment: Theme.start; }
+        }
+    }
+}
+
+component PresetCard inherits Card {
+    in property <string> icon;
+    in property <string> title;
+    in property <string> sub;
+    in-out property <bool> on;
+    callback toggled(bool);
+    height: 64px;
+    HorizontalLayout {
+        padding: 12px;
+        spacing: 12px;
+        Rectangle {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: Theme.accent-soft;
+            y: (parent.height - self.height) / 2;
+            Icon { d: icon; tint: Theme.accent; x: 9px; y: 9px; }
+        }
+        VerticalLayout {
+            alignment: center;
+            Text { text: title; color: Theme.text; font-size: 14px; font-weight: 600; overflow: elide; horizontal-alignment: Theme.start; }
+            Text { text: sub; color: Theme.sub; font-size: 11px; overflow: elide; horizontal-alignment: Theme.start; }
+        }
+        Toggle { checked <=> root.on; toggled(v) => { root.toggled(v); } y: (parent.height - self.height) / 2; }
+    }
+}
+
+export component BackupPage inherits Rectangle {
+    VerticalLayout {
+        spacing: 12px;
+        HorizontalLayout {
+            spacing: 8px;
+            PageHeader { icon: Icons.folder; title: Tr.backup; sub: Tr.backup-sub; }
+            PButton { text: Tr.save-profile; primary: false; width: 120px; y: 8px; clicked => { App.save-profile(); } }
+            PButton { text: Tr.load-profile; primary: false; width: 120px; y: 8px; clicked => { App.load-profile(); } }
+        }
+        if App.need-admin: Rectangle {
+            height: 44px;
+            border-radius: 8px;
+            background: #f2b44126;
+            border-width: 1px;
+            border-color: Theme.amber;
+            HorizontalLayout {
+                padding: 6px;
+                spacing: 10px;
+                Icon { d: Icons.warning; tint: Theme.amber; y: (parent.height - self.height) / 2; }
+                Text { text: App.status; color: Theme.text; font-size: 13px; vertical-alignment: center; overflow: elide; horizontal-alignment: Theme.start; }
+                PButton { text: Tr.relaunch; width: 210px; height: 30px; clicked => { App.relaunch-admin(); } }
+            }
+        }
+        ScrollView {
+            VerticalLayout {
+                spacing: 12px;
+                padding-right: 8px;
+                dz := Rectangle {
+                    height: 118px;
+                    DashedBox {
+                        active: App.dragging;
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 4px;
+                            Icon { d: Icons.plus; size: 30px; tint: Theme.accent; x: (parent.width - self.width) / 2; }
+                            Text { text: Tr.drop-title; color: Theme.text; font-size: 16px; font-weight: 600; horizontal-alignment: center; }
+                            Text { text: Tr.drop-sub; color: Theme.sub; font-size: 13px; horizontal-alignment: center; }
+                        }
+                        TouchArea { mouse-cursor: pointer; clicked => { App.add-files(); } }
+                    }
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: 6px;
+                        padding: 10px;
+                        PButton { text: Tr.add-folder; primary: false; width: 120px; height: 30px; clicked => { App.add-folder(); } }
+                    }
+                }
+                Card {
+                    height: 54px + Math.min(4, Math.max(1, App.items.length)) * 50px;
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 6px;
+                        Text { text: Tr.selected-items + " (" + App.items.length + ")"; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-alignment: Theme.start; }
+                        if App.items.length == 0: Text { text: Tr.no-items; color: Theme.sub; font-size: 13px; horizontal-alignment: Theme.start; }
+                        ListView {
+                            for it[i] in App.items: Rectangle {
+                                height: 50px;
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    Icon { d: it.folder ? Icons.folder : Icons.file; tint: Theme.accent; size: 24px; y: (parent.height - self.height) / 2; }
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Text { text: it.name; color: Theme.text; font-size: 14px; overflow: elide; horizontal-alignment: Theme.start; }
+                                        Text { text: it.detail; color: Theme.sub; font-size: 12px; overflow: elide; horizontal-alignment: Theme.start; }
+                                    }
+                                    IconButton { icon: Icons.close; y: (parent.height - self.height) / 2; clicked => { App.remove-item(i); } }
+                                }
+                            }
+                        }
+                    }
+                }
+                Text { text: Tr.presets; color: Theme.text; font-size: 15px; font-weight: 600; horizontal-alignment: Theme.start; }
+                PresetCard { icon: Icons.globe; title: Tr.browsers; sub: Tr.browsers-sub; on <=> App.preset-browsers; toggled(v) => { App.preset-changed(0, v); } }
+                if App.preset-browsers: Card {
+                    height: 44px + App.browser-rows.length * 34px + (App.browser-running ? 40px : 0px);
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 4px;
+                        Text { text: Tr.browsers-note; color: Theme.amber; font-size: 12px; wrap: word-wrap; horizontal-alignment: Theme.start; }
+                        for b[i] in App.browser-rows: Rectangle {
+                            height: 30px;
+                            HorizontalLayout {
+                                spacing: 10px;
+                                Check3 { state: b.checked ? 1 : 0; toggled => { App.browser-toggled(i, !b.checked); } y: (parent.height - self.height) / 2; }
+                                Text { text: b.label + (b.running ? "  (running)" : ""); color: Theme.text; font-size: 13px; vertical-alignment: center; horizontal-alignment: Theme.start; }
+                                Text { text: b.size; color: Theme.sub; font-size: 12px; vertical-alignment: center; horizontal-alignment: right; }
+                            }
+                        }
+                        if App.browser-running: HorizontalLayout {
+                            spacing: 10px;
+                            Text { text: "Some browsers are running. Close them or the backup may skip locked files."; color: Theme.sub; font-size: 12px; wrap: word-wrap; vertical-alignment: center; }
+                            PButton { text: Tr.close-browsers; width: 150px; height: 30px; primary: false; clicked => { App.close-browsers(); } }
+                        }
+                    }
+                }
+                PresetCard { icon: Icons.wifi; title: Tr.wifi; sub: Tr.wifi-sub; on <=> App.preset-wifi; toggled(v) => { App.preset-changed(1, v); } }
+                if App.preset-wifi && App.password == "": Rectangle {
+                    height: 40px;
+                    border-radius: 8px;
+                    background: #ef5b5b22;
+                    border-width: 1px;
+                    border-color: Theme.red;
+                    HorizontalLayout {
+                        padding: 8px;
+                        spacing: 8px;
+                        Icon { d: Icons.warning; tint: Theme.red; y: (parent.height - self.height) / 2; }
+                        Text { text: Tr.wifi-warn; color: Theme.text; font-size: 12px; font-weight: 600; vertical-alignment: center; wrap: word-wrap; horizontal-alignment: Theme.start; }
+                    }
+                }
+                PresetCard { icon: Icons.apps; title: Tr.programs; sub: Tr.programs-sub; on <=> App.preset-programs; toggled(v) => { App.preset-changed(2, v); } }
+                Card {
+                    height: 92px;
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 8px;
+                        Text { text: Tr.excludes; color: Theme.text; font-size: 14px; font-weight: 600; horizontal-alignment: Theme.start; }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Field { text <=> App.excludes; placeholder: Tr.excludes-ph; }
+                            ComboBox { model: ["+ Temp", "+ Developer", "+ Caches", "+ System junk"]; width: 150px; current-index: -1; selected(v) => { App.add-exclude-preset(self.current-index); } }
+                        }
+                    }
+                }
+                Card {
+                    height: 104px;
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 8px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            alignment: Theme.rtl ? end : start;
+                            Icon { d: Icons.lock; size: 18px; tint: Theme.accent; }
+                            Text { text: Tr.password; color: Theme.text; font-size: 14px; font-weight: 600; }
+                            Icon { d: Icons.info; size: 15px; tint: Theme.sub; y: 2px; }
+                            tip := TouchArea { width: 0px; }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            Field { text <=> App.password; placeholder: Tr.password-ph; secret: !App.show-password; }
+                            IconButton { icon: Icons.eye; tint: App.show-password ? Theme.accent : Theme.sub; y: 3px; clicked => { App.show-password = !App.show-password; } }
+                        }
+                        Text { text: Tr.password-tip; color: Theme.sub; font-size: 11px; overflow: elide; horizontal-alignment: Theme.start; }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            height: 58px;
+            HorizontalLayout {
+                spacing: 14px;
+                alignment: Theme.rtl ? end : start;
+                Rectangle { width: 10px; height: 10px; border-radius: 5px; background: App.status-kind == 0 ? Theme.green : App.status-kind == 1 ? Theme.amber : Theme.red; y: (parent.height - self.height) / 2; }
+                Text { text: App.need-admin ? Tr.ready : (App.status-kind == 0 ? Tr.ready : App.status); color: Theme.text; font-size: 14px; vertical-alignment: center; overflow: elide; horizontal-alignment: Theme.start; }
+                Rectangle { horizontal-stretch: 1; }
+                Text { text: Tr.compression; color: Theme.sub; font-size: 13px; vertical-alignment: center; }
+                ComboBox { model: [Tr.fast, Tr.recommended, Tr.maximum]; current-index <=> App.level; width: 150px; height: 40px; }
+                PButton { text: Tr.start-backup; icon: Icons.play; width: 170px; y: 9px; enabled: !App.busy; clicked => { App.start-backup(); } }
+            }
+        }
+    }
+}
+
+export component RestorePage inherits Rectangle {
+    VerticalLayout {
+        spacing: 12px;
+        PageHeader { icon: Icons.restore; title: Tr.restore; sub: Tr.restore-sub; }
+        if App.need-admin: Rectangle {
+            height: 44px;
+            border-radius: 8px;
+            background: #f2b44126;
+            border-width: 1px;
+            border-color: Theme.amber;
+            HorizontalLayout {
+                padding: 6px;
+                spacing: 10px;
+                Icon { d: Icons.warning; tint: Theme.amber; y: (parent.height - self.height) / 2; }
+                Text { text: App.status; color: Theme.text; font-size: 13px; vertical-alignment: center; overflow: elide; horizontal-alignment: Theme.start; }
+                PButton { text: Tr.relaunch; width: 210px; height: 30px; clicked => { App.relaunch-admin(); } }
+            }
+        }
+        if !App.archive-open && !App.needs-password: Rectangle {
+            vertical-stretch: 1;
+            DashedBox {
+                active: App.dragging;
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 6px;
+                    Icon { d: Icons.backup; size: 40px; tint: Theme.accent; x: (parent.width - self.width) / 2; }
+                    Text { text: Tr.open-archive; color: Theme.text; font-size: 18px; font-weight: 600; horizontal-alignment: center; }
+                    Text { text: Tr.open-sub; color: Theme.sub; font-size: 13px; horizontal-alignment: center; }
+                }
+                TouchArea { mouse-cursor: pointer; clicked => { App.open-archive(); } }
+            }
+        }
+        if App.needs-password: Card {
+            height: 120px;
+            VerticalLayout {
+                padding: 14px;
+                spacing: 10px;
+                Text { text: Tr.archive-password; color: Theme.text; font-size: 14px; horizontal-alignment: Theme.start; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Field { text <=> App.archive-password; secret: true; placeholder: Tr.password; }
+                    PButton { text: Tr.unlock; width: 120px; clicked => { App.unlock(); } }
+                    PButton { text: Tr.cancel; primary: false; width: 110px; clicked => { App.close-archive(); } }
+                }
+                Text { text: App.status; color: Theme.red; font-size: 12px; horizontal-alignment: Theme.start; }
+            }
+        }
+        if App.archive-open: VerticalLayout {
+            spacing: 10px;
+            vertical-stretch: 1;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: Theme.rtl ? end : start;
+                Icon { d: Icons.file; size: 20px; tint: Theme.accent; y: (parent.height - self.height) / 2; }
+                Text { text: App.archive-name; color: Theme.text; font-size: 14px; font-weight: 600; vertical-alignment: center; overflow: elide; horizontal-alignment: Theme.start; }
+                Rectangle { horizontal-stretch: 1; }
+                PButton { text: Tr.open-another; icon: Icons.folder; primary: false; height: 30px; width: 150px; clicked => { App.open-archive(); } }
+                PButton { text: Tr.close-archive; icon: Icons.close; primary: false; height: 30px; width: 150px; clicked => { App.close-archive(); } }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                Icon { d: Icons.search; size: 18px; tint: Theme.sub; y: 10px; }
+                Field { text <=> App.search; placeholder: Tr.search; edited(t) => { App.search-changed(t); } }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                PButton { text: Tr.select-all; primary: false; height: 30px; clicked => { App.tree-bulk(0); } }
+                PButton { text: Tr.deselect-all; primary: false; height: 30px; clicked => { App.tree-bulk(1); } }
+                PButton { text: Tr.invert; primary: false; height: 30px; clicked => { App.tree-bulk(2); } }
+                PButton { text: Tr.expand-all; primary: false; height: 30px; clicked => { App.tree-bulk(3); } }
+                PButton { text: Tr.collapse-all; primary: false; height: 30px; clicked => { App.tree-bulk(4); } }
+            }
+            Card {
+                vertical-stretch: 1;
+                ListView {
+                    for row[i] in App.tree-rows: Rectangle {
+                        height: 32px;
+                        background: ta.has-hover ? Theme.card-hover : transparent;
+                        ta := TouchArea { clicked => { App.tree-select(i); } }
+                        HorizontalLayout {
+                            padding-left: 10px + row.depth * 20px;
+                            padding-right: 10px;
+                            spacing: 8px;
+                            Rectangle {
+                                width: 18px;
+                                if row.has-children: Icon { d: row.expanded ? Icons.chevron-down : Icons.chevron-right; size: 18px; tint: Theme.sub; y: (parent.height - self.height) / 2; }
+                                if row.has-children: TouchArea { clicked => { App.tree-expand(i); } }
+                            }
+                            Check3 { state: row.state; toggled => { App.tree-check(i); } y: (parent.height - self.height) / 2; }
+                            Icon { d: row.icon == 0 ? Icons.folder : row.icon == 1 ? Icons.file : row.icon == 2 ? Icons.globe : row.icon == 3 ? Icons.wifi : Icons.apps; size: 18px; tint: row.icon == 1 ? Theme.sub : Theme.accent; y: (parent.height - self.height) / 2; }
+                            Text { text: row.label; color: Theme.text; font-size: 13px; vertical-alignment: center; overflow: elide; horizontal-alignment: Theme.start; }
+                            Text { text: row.size; color: Theme.sub; font-size: 12px; vertical-alignment: center; horizontal-alignment: right; width: 80px; }
+                        }
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                Text { text: Tr.conflict; color: Theme.sub; font-size: 13px; vertical-alignment: center; }
+                ComboBox { model: [Tr.ask, Tr.overwrite, Tr.skip, Tr.keep-both, Tr.overwrite-older]; current-index <=> App.policy; width: 200px; }
+                Field { text <=> App.drive-map; placeholder: Tr.drive-map; width: 150px; }
+                Field { text <=> App.restore-root; placeholder: Tr.other-root; }
+                IconButton { icon: Icons.folder; clicked => { App.browse-root(); } }
+            }
+            Text { text: App.resolved-path == "" ? "" : Tr.resolved + ": " + App.resolved-path; color: Theme.sub; font-size: 12px; overflow: elide; horizontal-alignment: Theme.start; }
+            HorizontalLayout {
+                spacing: 12px;
+                Rectangle { width: 10px; height: 10px; border-radius: 5px; background: Theme.green; y: 24px; }
+                Text { text: App.restore-footer; color: Theme.text; font-size: 14px; vertical-alignment: center; horizontal-alignment: Theme.start; }
+                PButton { text: Tr.do-restore; icon: Icons.restore; width: 150px; enabled: !App.busy; clicked => { App.start-restore(); } }
+            }
+        }
+    }
+}
+
+component Row inherits HorizontalLayout {
+    in property <string> label;
+    spacing: 12px;
+    Text { text: label; color: Theme.text; font-size: 14px; width: 210px; vertical-alignment: center; horizontal-alignment: Theme.start; }
+}
+
+export component SettingsPage inherits Rectangle {
+    VerticalLayout {
+        spacing: 12px;
+        PageHeader { icon: Icons.settings; title: Tr.settings; sub: Tr.settings-sub; }
+        Card {
+            vertical-stretch: 1;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 14px;
+                alignment: start;
+                Row { label: Tr.output-folder; Field { text <=> App.out-dir; edited(t) => { App.settings-changed(); } } IconButton { icon: Icons.folder; clicked => { App.browse-output(); } } }
+                Row { label: Tr.default-compression; ComboBox { model: [Tr.fast, Tr.recommended, Tr.maximum]; current-index <=> App.default-level; selected(v) => { App.settings-changed(); } } }
+                Row { label: Tr.default-excludes; Field { text <=> App.default-excludes; edited(t) => { App.settings-changed(); } } }
+                Row { label: Tr.theme; ComboBox { model: [Tr.system, Tr.dark, Tr.light]; current-index <=> App.theme-index; selected(v) => { App.settings-changed(); } } }
+                Row { label: Tr.language; ComboBox { model: ["English", "العربية"]; current-index <=> App.language-index; selected(v) => { App.settings-changed(); } } }
+                Row { label: Tr.conflict-default; ComboBox { model: [Tr.ask, Tr.overwrite, Tr.skip, Tr.keep-both, Tr.overwrite-older]; current-index <=> App.default-policy; selected(v) => { App.settings-changed(); } } }
+                HorizontalLayout { alignment: Theme.rtl ? end : start; PButton { text: Tr.export-log; icon: Icons.file; primary: false; width: 170px; clicked => { App.export-log(); } } }
+            }
+        }
+    }
+}
